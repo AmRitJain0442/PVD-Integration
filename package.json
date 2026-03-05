@@ -1,0 +1,15 @@
+{
+  "name": "nightwatch-sentinel",
+  "version": "1.0.0",
+  "description": "Hackathon-ready cybersecurity web app with Gemini-powered remediation copilot.",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+
