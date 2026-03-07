@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NightWatch Sentinel</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="landing-body">
+    <div class="background-layer" aria-hidden="true">
+      <div class="scanlines"></div>
+      <div class="grid-overlay"></div>
+    </div>
+
+    <main class="site-shell">
+      <header class="site-nav panel site-frame" data-reveal>
+        <a class="brand-lockup" href="/">
+          <span class="brand-symbol">[[]]</span>
+          <div>
+            <p class="kicker">Threat Interface</p>
+            <h1 class="brand-title">NightWatch Sentinel</h1>
+          </div>
+        </a>
+
+        <nav class="nav-cluster" aria-label="Primary">
+          <a class="nav-link" href="/">Home</a>
+          <a class="nav-link" href="/platform">Platform</a>
+          <a class="nav-link" href="/console">Console</a>
+          <a class="nav-link" href="#workflow">Workflow</a>
+        </nav>
+
+        <div class="nav-utilities">
+          <a class="btn secondary" href="/platform">Product Map</a>
+          <a class="btn primary" href="/console">Launch Console</a>
+        </div>
+      </header>
+
+      <section class="landing-hero">
+        <article class="panel hero-panel hero-copy-card" data-reveal>
+          <div class="hero-copy-top">
+            <p class="kicker">Multi-Page Cybersecurity Product</p>
+            <h2 class="landing-title">Unified browser threat telemetry with a sharp landing page and a live operator console.</h2>
+            <p class="landing-copy">
+              NightWatch Sentinel gives you a polished entry point for demos, a dedicated console for
+              scanning and response, and a product page that explains the platform story clearly.
+            </p>
+          </div>
+
+          <div class="hero-actions">
+            <a class="btn primary" href="/console">Enter Console</a>
+            <a class="btn secondary" href="/platform">Explore Platform</a>
+          </div>
+
+          <div class="signal-strip">
+            <span>device posture</span>
+            <span>url triage</span>
+            <span>gemini playbooks</span>
+            <span>api relay</span>
+          </div>
+        </article>
+
+        <aside class="panel hero-panel hero-visual-card" data-reveal>
+          <div class="hero-terminal">
+            <div class="terminal-head">
+              <span>status: armed</span>
+              <span>mode: analyst</span>
+            </div>
+            <div class="terminal-grid">
+              <div class="terminal-cell">
+                <span class="cell-label">01</span>
+                <strong>scan</strong>
+                <p>run modular analyzers against the browser surface</p>
+              </div>
+              <div class="terminal-cell">
+                <span class="cell-label">02</span>
+                <strong>triage</strong>
+                <p>search, filter, and inspect findings in a dedicated workspace</p>
+              </div>
+              <div class="terminal-cell">
+                <span class="cell-label">03</span>
+                <strong>respond</strong>
+                <p>generate containment and hardening playbooks with Gemini</p>
+              </div>
+              <div class="terminal-cell">
+                <span class="cell-label">04</span>
+                <strong>relay</strong>
+                <p>push events and review recent payloads from the built-in API</p>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="landing-stats" data-reveal>
+        <article class="panel marketing-stat">
+          <p>Pages</p>
+          <strong>3</strong>
+          <span>home + platform + console</span>
+        </article>
+        <article class="panel marketing-stat">
+          <p>Core Modules</p>
+          <strong>5</strong>
+          <span>scan, triage, scenarios, playbooks, relay</span>
+        </article>
+        <article class="panel marketing-stat">
+          <p>API Routes</p>
+          <strong>4</strong>
+          <span>health, events, ingest, Gemini analyze</span>
+        </article>
+      </section>
+
+      <section id="workflow" class="marketing-section">
+        <div class="section-heading" data-reveal>
+          <div>
+            <p class="kicker">Workflow</p>
+            <h2>Built for product demos and real operator flow</h2>
+          </div>
+          <p class="section-copy">Start from the story, move into the platform, then drop into the live console.</p>
+        </div>
+
+        <div class="marketing-grid">
+          <article class="panel marketing-card" data-reveal>
+            <span class="feature-glyph">01</span>
+            <h3>Landing</h3>
+            <p>Use the front page as the pitch layer with a clear value proposition and direct calls to action.</p>
+            <a class="inline-link" href="/">Stay on landing</a>
+          </article>
+          <article class="panel marketing-card" data-reveal>
+            <span class="feature-glyph">02</span>
+            <h3>Platform</h3>
+            <p>Explain analyzers, response loops, APIs, and roadmap in a cleaner product narrative.</p>
+            <a class="inline-link" href="/platform">Open platform page</a>
+          </article>
+          <article class="panel marketing-card" data-reveal>
+            <span class="feature-glyph">03</span>
+            <h3>Console</h3>
+            <p>Move into the interactive page for scanning, URL triage, scenario loading, and relay monitoring.</p>
+            <a class="inline-link" href="/console">Open console</a>
+          </article>
+        </div>
+      </section>
+
+      <section class="marketing-section">
+        <div class="section-heading" data-reveal>
+          <div>
+            <p class="kicker">Highlights</p>
+            <h2>Why this feels like a product now</h2>
+          </div>
+          <p class="section-copy">The front door looks intentional, and the working app is no longer forced to do every job at once.</p>
+        </div>
+
+        <div class="feature-band">
+          <article class="panel feature-band-card" data-reveal>
+            <h3>Clear separation of roles</h3>
+            <p>The landing page sells the idea. The console executes the workflow. The platform page explains the system.</p>
+          </article>
+          <article class="panel feature-band-card" data-reveal>
+            <h3>Clean routing</h3>
+            <p>Pages are reachable at <code>/</code>, <code>/platform</code>, and <code>/console</code> with extensionless routes.</p>
+          </article>
+          <article class="panel feature-band-card" data-reveal>
+            <h3>Consistent visual system</h3>
+            <p>The entire site shares one cyber look instead of mixing marketing and operator UI in the same surface.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="cta-panel panel" data-reveal>
+        <div>
+          <p class="kicker">Ready</p>
+          <h2>Go straight into the operator workspace.</h2>
+        </div>
+        <div class="hero-actions">
+          <a class="btn primary" href="/console">Open Live Console</a>
+          <a class="btn secondary" href="/platform">Read Platform Details</a>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/site.js"></script>
+  </body>
+</html>
