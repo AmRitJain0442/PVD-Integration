@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NightWatch Sentinel Console</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="app-body">
+    <div class="background-layer" aria-hidden="true">
+      <div class="scanlines"></div>
+      <div class="grid-overlay"></div>
+    </div>
+
+    <main class="app-shell">
+      <header class="site-nav panel" data-reveal>
+        <a class="brand-lockup" href="/console">
+          <span class="brand-symbol">[[]]</span>
+          <div>
+            <p class="kicker">Security Console</p>
+            <h1 class="brand-title">NightWatch Sentinel</h1>
+          </div>
+        </a>
+
+        <nav class="nav-cluster" aria-label="Primary">
+          <a class="nav-link" href="/">Home</a>
+          <a class="nav-link" href="/platform">Platform</a>
+          <a class="nav-link" href="#telemetry" data-scroll-target="telemetry">Telemetry</a>
+          <a class="nav-link" href="#scenarioLab" data-scroll-target="scenarioLab">Scenarios</a>
+          <a class="nav-link" href="#relayDeck" data-scroll-target="relayDeck">Relay</a>
+        </nav>
+
+        <div class="nav-utilities">
+          <div class="status-block">
+            <span class="dot"></span>
+            <span id="statusText" aria-live="polite">Idle</span>
+          </div>
+          <button type="button" class="btn primary" data-scroll-target="opsDeck">Open Console</button>
+        </div>
+      </header>
+
+      <section id="hero" class="hero-grid">
+        <article class="panel hero-copy" data-reveal>
+          <div class="hero-copy-top">
+            <p class="kicker">Live Operator Workspace</p>
+            <h2 class="hero-title">Minimal hacker console for scan, triage, relay, and response.</h2>
+            <p class="subhead">
+              Run scans, load scenarios, filter findings, generate Gemini playbooks, and review the
+              recent event relay without leaving the workspace.
+            </p>
+          </div>
+
+          <div class="hero-actions">
+            <button type="button" id="heroScanBtn" class="btn primary">Run Scan</button>
+            <button type="button" class="btn secondary" data-scroll-target="scenarioLab">Load Scenario</button>
+            <button type="button" class="btn ghost" data-scroll-target="relayDeck">Open Relay</button>
+          </div>
+
+          <div class="signal-strip" aria-label="Core capabilities">
+            <span>scan</span>
+            <span>simulate</span>
+            <span>filter</span>
+            <span>push</span>
+            <span>respond</span>
+          </div>
+
+          <div class="hero-mini-grid">
+            <a class="mini-card panel-link" href="#telemetry" data-scroll-target="telemetry">
+              <span class="mini-label">Risk posture</span>
+              <strong data-score-mirror>0 / 100</strong>
+            </a>
+            <a class="mini-card panel-link" href="#findingsDeck" data-scroll-target="findingsDeck">
+              <span class="mini-label">Findings</span>
+              <strong data-finding-mirror>0</strong>
+            </a>
+            <a class="mini-card panel-link" href="#playbookDeck" data-scroll-target="playbookDeck">
+              <span class="mini-label">Critical + High</span>
+              <strong data-critical-mirror>0</strong>
+            </a>
+            <a class="mini-card panel-link" href="#relayDeck" data-scroll-target="relayDeck">
+              <span class="mini-label">Relay buffer</span>
+              <strong id="eventCountValue" data-event-count-mirror>0</strong>
+            </a>
+          </div>
+        </article>
+
+        <aside class="panel hero-stage" data-reveal>
+          <div class="stage-header">
+            <p class="stage-kicker">Terminal Snapshot</p>
+            <p class="stage-caption">Shortcuts, health, and quick navigation for the operator loop.</p>
+          </div>
+
+          <div class="stage-shell">
+            <button type="button" class="stage-node" data-scroll-target="findingsDeck">
+              <span class="node-symbol">&lt;&gt;</span>
+              <span class="node-label">Open findings feed</span>
+            </button>
+            <button type="button" class="stage-node" data-scroll-target="opsDeck" data-focus-target="urlInput">
+              <span class="node-symbol">/</span>
+              <span class="node-label">Focus URL triage</span>
+            </button>
+            <button
+              type="button"
+              class="stage-node"
+              data-scroll-target="playbookDeck"
+              data-focus-target="goalInput"
+            >
+              <span class="node-symbol">{}</span>
+              <span class="node-label">Focus mission prompt</span>
+            </button>
+
+            <div class="stage-readout">
+              <span class="readout-label">System State</span>
+              <strong data-status-mirror>Idle</strong>
+              <div class="readout-grid">
+                <div>
+                  <span class="readout-meta">Critical</span>
+                  <strong data-critical-mirror>0</strong>
+                </div>
+                <div>
+                  <span class="readout-meta">Signals</span>
+                  <strong data-signal-mirror>0</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="system-grid">
+            <section class="terminal-card">
+              <div class="card-topline">
+                <p class="kicker">Health</p>
+                <button type="button" id="refreshHealthBtn" class="mini-btn">Refresh</button>
+              </div>
+              <div class="data-grid">
+                <div class="data-row">
+                  <span>API</span>
+                  <strong id="healthStatusValue">unknown</strong>
+                </div>
+                <div class="data-row">
+                  <span>Gemini</span>
+                  <strong id="geminiStatusValue">unknown</strong>
+                </div>
+                <div class="data-row">
+                  <span>Uptime</span>
+                  <strong id="uptimeValue">--</strong>
+                </div>
+                <div class="data-row">
+                  <span>Last sync</span>
+                  <strong id="lastSyncValue">--</strong>
+                </div>
+              </div>
+            </section>
+
+            <section class="terminal-card">
+              <p class="kicker">Hotkeys</p>
+              <ul class="hotkey-list">
+                <li><span>/</span><strong>focus URL triage</strong></li>
+                <li><span>g</span><strong>focus mission prompt</strong></li>
+                <li><span>r</span><strong>run full scan</strong></li>
+                <li><span>e</span><strong>refresh relay</strong></li>
+              </ul>
+            </section>
+          </div>
+        </aside>
+      </section>
+
+      <section id="telemetry" class="section-block">
+        <div class="section-heading" data-reveal>
+          <div>
+            <p class="kicker">Telemetry</p>
+            <h2>Risk and signal counters</h2>
+          </div>
+          <p class="section-copy">Each card jumps straight to the relevant panel.</p>
+        </div>
+
+        <div class="stats-grid">
+          <a class="panel stat-card panel-link" href="#opsDeck" data-scroll-target="opsDeck" data-reveal>
+            <p>Risk Score</p>
+            <h2 id="overallScore">0 / 100</h2>
+            <span class="card-meta">Open command deck</span>
+          </a>
+          <a class="panel stat-card panel-link" href="#findingsDeck" data-scroll-target="findingsDeck" data-reveal>
+            <p>Total Findings</p>
+            <h2 id="findingCount">0</h2>
+            <span class="card-meta">Jump to findings</span>
+          </a>
+          <a class="panel stat-card panel-link" href="#playbookDeck" data-scroll-target="playbookDeck" data-reveal>
+            <p>Critical + High</p>
+            <h2 id="criticalCount">0</h2>
+            <span class="card-meta">Focus highest risk</span>
+          </a>
+          <a class="panel stat-card panel-link" href="#contextDeck" data-scroll-target="contextDeck" data-reveal>
+            <p>Signals Collected</p>
+            <h2 id="signalCount">0</h2>
+            <span class="card-meta">Inspect raw context</span>
+          </a>
+        </div>
+      </section>
+
+      <section id="scenarioLab" class="section-block">
+        <div class="section-heading" data-reveal>
+          <div>
+            <p class="kicker">Scenario Lab</p>
+            <h2>Preset threat stories for demos and testing</h2>
+          </div>
+          <p class="section-copy">Load a full sample context instantly, then generate the response playbook.</p>
+        </div>
+
+        <div class="scenario-grid">
+          <button type="button" class="panel scenario-card" data-scenario-id="phishing-kit" data-reveal>
+            <span class="feature-glyph">&lt;&gt;</span>
+            <h3>Phishing Kit</h3>
+            <p>Credential lure domain, suspicious auth wording, and insecure transport.</p>
+            <span class="feature-cta">Load scenario</span>
+          </button>
+          <button type="button" class="panel scenario-card" data-scenario-id="shadow-network" data-reveal>
+            <span class="feature-glyph">//</span>
+            <h3>Shadow Network</h3>
+            <p>Insecure transport, stale permissions, and telemetry blind spots across the device.</p>
+            <span class="feature-cta">Load scenario</span>
+          </button>
+          <button type="button" class="panel scenario-card" data-scenario-id="rogue-device" data-reveal>
+            <span class="feature-glyph">[]</span>
+            <h3>Rogue Device</h3>
+            <p>Bluetooth exposure, local interface discovery, and risky endpoint posture.</p>
+            <span class="feature-cta">Load scenario</span>
+          </button>
+          <button type="button" class="panel scenario-card" data-scenario-id="rapid-hardening" data-reveal>
+            <span class="feature-glyph">{}</span>
+            <h3>Rapid Hardening</h3>
+            <p>High finding density with a remediation-focused prompt ready for Gemini.</p>
+            <span class="feature-cta">Load scenario</span>
+          </button>
+        </div>
+      </section>
+
+      <section id="workflow" class="section-block">
+        <div class="section-heading" data-reveal>
+          <div>
+            <p class="kicker">Workflow</p>
+            <h2>Scan to response path</h2>
+          </div>
+          <p class="section-copy">Collect. Inspect. Generate. Ship.</p>
+        </div>
+
+        <div class="workflow-grid">
+          <a class="panel workflow-card panel-link" href="#opsDeck" data-scroll-target="opsDeck" data-reveal>
+            <span class="step-index">01</span>
+            <h3>Acquire Signals</h3>
+            <p>Run analyzers or load a scenario to seed the risk model.</p>
+          </a>
+          <a class="panel workflow-card panel-link" href="#findingsDeck" data-scroll-target="findingsDeck" data-reveal>
+            <span class="step-index">02</span>
+            <h3>Filter Findings</h3>
+            <p>Search, severity-filter, and inspect the feed without losing the raw context.</p>
+          </a>
+          <a class="panel workflow-card panel-link" href="#playbookDeck" data-scroll-target="playbookDeck" data-reveal>
+            <span class="step-index">03</span>
+            <h3>Generate Response</h3>
+            <p>Turn the current state into a containment and hardening plan.</p>
+          </a>
+          <a class="panel workflow-card panel-link" href="#relayDeck" data-scroll-target="relayDeck" data-reveal>
+            <span class="step-index">04</span>
+            <h3>Relay Output</h3>
+            <p>Push payloads, inspect recent events, and export the JSON snapshot.</p>
+          </a>
+        </div>
+      </section>
+
+      <section id="opsDeck" class="section-block">
+        <div class="section-heading" data-reveal>
+          <div>
+            <p class="kicker">Console</p>
+            <h2>Command deck</h2>
+          </div>
+          <p class="section-copy">Core controls on the left. Findings and output on the right.</p>
+        </div>
+
+        <div class="operations-grid">
+          <article class="panel controls" data-reveal>
+            <div class="panel-header">
+              <div>
+                <p class="panel-kicker">Operations</p>
+                <h3>Action stack</h3>
+              </div>
+              <span class="panel-symbol">::</span>
+            </div>
+
+            <div class="button-stack">
+              <button type="button" id="runScanBtn" class="btn primary">Run Full Threat Scan</button>
+              <button type="button" id="permissionsBtn" class="btn">Request Device Permissions</button>
+              <button type="button" id="exportBtn" class="btn">Export JSON Report</button>
+              <button type="button" id="pushBtn" class="btn">Push Event To API</button>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="panel-header">
+              <div>
+                <p class="panel-kicker">URL Threat Triage</p>
+                <h3>Fast phishing inspection</h3>
+              </div>
+              <span class="panel-symbol">&lt;&gt;</span>
+            </div>
+
+            <label for="urlInput">Suspicious URL</label>
+            <input
+              id="urlInput"
+              type="text"
+              placeholder="https://secure-wallet-update.example"
+              autocomplete="off"
+            />
+            <button type="button" id="analyzeUrlBtn" class="btn secondary">Analyze URL</button>
+
+            <div class="divider"></div>
+
+            <div class="panel-header">
+              <div>
+                <p class="panel-kicker">AI Goal</p>
+                <h3>Gemini objective prompt</h3>
+              </div>
+              <span class="panel-symbol">{}</span>
+            </div>
+
+            <label for="goalInput">Mission prompt</label>
+            <textarea
+              id="goalInput"
+              rows="6"
+              placeholder="Prioritize a 48-hour action plan for the highest-risk findings."
+            ></textarea>
+            <div class="button-stack utility-stack">
+              <button type="button" id="generatePlanBtn" class="btn primary">Generate SOC Playbook</button>
+              <button type="button" id="copyAiBtn" class="btn">Copy AI Output</button>
+              <button type="button" id="copyContextBtn" class="btn">Copy Context JSON</button>
+              <button type="button" id="loadDefaultGoalBtn" class="btn">Load Default Goal</button>
+            </div>
+          </article>
+
+          <div class="intel-column">
+            <article id="findingsDeck" class="panel findings-panel" data-reveal>
+              <div class="panel-header">
+                <div>
+                  <p class="panel-kicker">Live Findings</p>
+                  <h3>Threat feed</h3>
+                </div>
+                <span class="panel-symbol">[]</span>
+              </div>
+
+              <div class="filter-toolbar">
+                <input
+                  id="findingSearchInput"
+                  type="text"
+                  class="filter-input"
+                  placeholder="Search title, source, or detail"
+                  autocomplete="off"
+                />
+                <div class="filter-pills" role="toolbar" aria-label="Severity filters">
+                  <button type="button" class="filter-pill is-active" data-filter-severity="all">All</button>
+                  <button type="button" class="filter-pill" data-filter-severity="critical">Critical</button>
+                  <button type="button" class="filter-pill" data-filter-severity="high">High</button>
+                  <button type="button" class="filter-pill" data-filter-severity="medium">Medium</button>
+                  <button type="button" class="filter-pill" data-filter-severity="low">Low</button>
+                  <button type="button" class="filter-pill" data-filter-severity="info">Info</button>
+                </div>
+              </div>
+
+              <p id="findingFilterMeta" class="meta-line">Showing 0 of 0 findings</p>
+              <ul id="findingsList" class="findings-list"></ul>
+            </article>
+
+            <div class="output-grid">
+              <article id="playbookDeck" class="panel ai-panel" data-reveal>
+                <div class="panel-header">
+                  <div>
+                    <p class="panel-kicker">Gemini</p>
+                    <h3>Incident playbook</h3>
+                  </div>
+                  <span class="panel-symbol">{}</span>
+                </div>
+                <pre id="aiOutput" class="output-box" aria-live="polite">Run a scan, then generate your playbook.</pre>
+              </article>
+
+              <article id="contextDeck" class="panel context-panel" data-reveal>
+                <div class="panel-header">
+                  <div>
+                    <p class="panel-kicker">Context JSON</p>
+                    <h3>Raw telemetry snapshot</h3>
+                  </div>
+                  <span class="panel-symbol">//</span>
+                </div>
+                <pre id="contextOutput" class="output-box">No scan context available yet.</pre>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="relayDeck" class="section-block">
+        <div class="section-heading" data-reveal>
+          <div>
+            <p class="kicker">Relay</p>
+            <h2>Output routes and recent event buffer</h2>
+          </div>
+          <p class="section-copy">Push payloads, inspect what is stored, and review any event payload in raw form.</p>
+        </div>
+
+        <div class="relay-grid">
+          <div class="integration-grid">
+            <a class="panel integration-card panel-link" href="#activityDeck" data-action="push-event" data-scroll-target="activityDeck" data-reveal>
+              <span class="integration-glyph">//</span>
+              <h3>Push Event Payload</h3>
+              <p><code>POST /api/events/ingest</code> with the current telemetry context.</p>
+              <span class="feature-cta">Send live payload</span>
+            </a>
+            <a class="panel integration-card panel-link" href="#playbookDeck" data-action="generate-playbook" data-scroll-target="playbookDeck" data-reveal>
+              <span class="integration-glyph">{}</span>
+              <h3>Generate Gemini Output</h3>
+              <p>Use <code>GEMINI_API_KEY</code> from <code>.env</code> to create an operator-ready plan.</p>
+              <span class="feature-cta">Run response draft</span>
+            </a>
+            <a class="panel integration-card panel-link" href="#contextDeck" data-action="export-report" data-scroll-target="contextDeck" data-reveal>
+              <span class="integration-glyph">[]</span>
+              <h3>Export Snapshot</h3>
+              <p>Download the current scan JSON for a handoff or artifact.</p>
+              <span class="feature-cta">Download report</span>
+            </a>
+          </div>
+
+          <article class="panel relay-panel" data-reveal>
+            <div class="panel-header">
+              <div>
+                <p class="panel-kicker">Recent API Events</p>
+                <h3>Relay buffer</h3>
+              </div>
+              <button type="button" id="refreshEventsBtn" class="mini-btn">Refresh</button>
+            </div>
+
+            <div class="relay-content">
+              <ul id="eventsList" class="events-list"></ul>
+              <pre id="eventDetailOutput" class="output-box event-output">No event selected.</pre>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="activityDeck" class="section-block">
+        <div class="section-heading" data-reveal>
+          <div>
+            <p class="kicker">Activity</p>
+            <h2>Trace log</h2>
+          </div>
+          <p class="section-copy">Live console output for scans, requests, relay updates, and errors.</p>
+        </div>
+
+        <article class="panel" data-reveal>
+          <ul id="activityLog" class="activity-log" aria-live="polite"></ul>
+        </article>
+      </section>
+    </main>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
