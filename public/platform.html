@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NightWatch Sentinel Platform</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="platform-body">
+    <div class="background-layer" aria-hidden="true">
+      <div class="scanlines"></div>
+      <div class="grid-overlay"></div>
+    </div>
+
+    <main class="site-shell">
+      <header class="site-nav panel site-frame" data-reveal>
+        <a class="brand-lockup" href="/">
+          <span class="brand-symbol">[[]]</span>
+          <div>
+            <p class="kicker">Platform Map</p>
+            <h1 class="brand-title">NightWatch Sentinel</h1>
+          </div>
+        </a>
+
+        <nav class="nav-cluster" aria-label="Primary">
+          <a class="nav-link" href="/">Home</a>
+          <a class="nav-link" href="/platform">Platform</a>
+          <a class="nav-link" href="/console">Console</a>
+          <a class="nav-link" href="#roadmap">Roadmap</a>
+        </nav>
+
+        <div class="nav-utilities">
+          <a class="btn secondary" href="/">Back To Landing</a>
+          <a class="btn primary" href="/console">Open Console</a>
+        </div>
+      </header>
+
+      <section class="platform-hero">
+        <article class="panel hero-panel hero-copy-card" data-reveal>
+          <p class="kicker">System Overview</p>
+          <h2 class="landing-title">The product page explains how detection, context, relay, and AI fit together.</h2>
+          <p class="landing-copy">
+            This page is the middle layer of the product. It is useful for judges, collaborators, and
+            stakeholders who need a structured view of the system without going directly into the console.
+          </p>
+          <div class="hero-actions">
+            <a class="btn primary" href="/console">Use The Console</a>
+            <a class="btn secondary" href="/">Open Landing</a>
+          </div>
+        </article>
+
+        <article class="panel platform-stack" data-reveal>
+          <div class="stack-card">
+            <span class="feature-glyph">[1]</span>
+            <h3>Signal Capture</h3>
+            <p>Permissions, device surface, network state, Bluetooth, and URL heuristics feed one context object.</p>
+          </div>
+          <div class="stack-card">
+            <span class="feature-glyph">[2]</span>
+            <h3>Risk Engine</h3>
+            <p>All findings are normalized and scored into one summary with severity-aware weighting.</p>
+          </div>
+          <div class="stack-card">
+            <span class="feature-glyph">[3]</span>
+            <h3>Response Layer</h3>
+            <p>Gemini turns the current state into a practical action plan with immediate and short-term steps.</p>
+          </div>
+        </article>
+      </section>
+
+      <section class="marketing-section">
+        <div class="section-heading" data-reveal>
+          <div>
+            <p class="kicker">Modules</p>
+            <h2>Core surfaces in the product</h2>
+          </div>
+          <p class="section-copy">These are the areas that now have clear ownership across the multi-page site.</p>
+        </div>
+
+        <div class="marketing-grid">
+          <article class="panel marketing-card" data-reveal>
+            <span class="feature-glyph">scan</span>
+            <h3>Threat Scan</h3>
+            <p>Runs all analyzers and refreshes the unified context, findings, and score.</p>
+          </article>
+          <article class="panel marketing-card" data-reveal>
+            <span class="feature-glyph">triage</span>
+            <h3>URL Inspection</h3>
+            <p>Flags protocol, lure wording, suspicious TLDs, and infrastructure patterns.</p>
+          </article>
+          <article class="panel marketing-card" data-reveal>
+            <span class="feature-glyph">lab</span>
+            <h3>Scenario Presets</h3>
+            <p>Loads crafted telemetry stories instantly for demos, testing, and prompt refinement.</p>
+          </article>
+          <article class="panel marketing-card" data-reveal>
+            <span class="feature-glyph">relay</span>
+            <h3>API Event Buffer</h3>
+            <p>Stores recent payloads and makes the product feel more like a real pipeline surface.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="marketing-section">
+        <div class="section-heading" data-reveal>
+          <div>
+            <p class="kicker">Routes</p>
+            <h2>Page and API map</h2>
+          </div>
+          <p class="section-copy">The experience is cleaner now because the routes match the product structure.</p>
+        </div>
+
+        <div class="feature-band">
+          <article class="panel feature-band-card" data-reveal>
+            <h3>Pages</h3>
+            <p><code>/</code> landing page</p>
+            <p><code>/platform</code> product overview</p>
+            <p><code>/console</code> live workspace</p>
+          </article>
+          <article class="panel feature-band-card" data-reveal>
+            <h3>API</h3>
+            <p><code>/api/health</code> service state</p>
+            <p><code>/api/events</code> recent events</p>
+            <p><code>/api/events/ingest</code> payload intake</p>
+            <p><code>/api/gemini/analyze</code> response generation</p>
+          </article>
+          <article class="panel feature-band-card" data-reveal>
+            <h3>Operator Utilities</h3>
+            <p>severity filters</p>
+            <p>scenario loading</p>
+            <p>copy-to-clipboard actions</p>
+            <p>keyboard shortcuts</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="roadmap" class="marketing-section">
+        <div class="section-heading" data-reveal>
+          <div>
+            <p class="kicker">Roadmap</p>
+            <h2>Next logical builds</h2>
+          </div>
+          <p class="section-copy">This is the path that pushes the project from demo-ready into product-ready.</p>
+        </div>
+
+        <div class="marketing-grid">
+          <article class="panel marketing-card" data-reveal>
+            <span class="feature-glyph">A</span>
+            <h3>Saved Sessions</h3>
+            <p>Persist complete scan contexts and replay them as historical incidents.</p>
+          </article>
+          <article class="panel marketing-card" data-reveal>
+            <span class="feature-glyph">B</span>
+            <h3>Command Palette</h3>
+            <p>Add a fast operator launcher for scan actions, filters, and route jumps.</p>
+          </article>
+          <article class="panel marketing-card" data-reveal>
+            <span class="feature-glyph">C</span>
+            <h3>Webhook Connectors</h3>
+            <p>Push structured payloads into downstream SIEM or SOAR destinations.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/site.js"></script>
+  </body>
+</html>
