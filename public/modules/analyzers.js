@@ -6,6 +6,12 @@ const URL_SHORTENER_DOMAINS = new Set([
   "rb.gy",
   "rebrand.ly",
   "ow.ly",
+  "goo.gl",
+  "cutt.ly",
+  "shorturl.at",
+  "tiny.cc",
+  "v.gd",
+  "qr.ae",
 ]);
 
 const HIGH_RISK_TLDS = new Set([
@@ -17,6 +23,20 @@ const HIGH_RISK_TLDS = new Set([
   "country",
   "kim",
   "fit",
+  "tk",
+  "cc",
+  "ws",
+  "ml",
+  "ga",
+  "cf",
+  "buzz",
+  "surf",
+  "rest",
+  "icu",
+  "cam",
+  "xyz",
+  "loan",
+  "racing",
 ]);
 
 const LURE_KEYWORDS = [
@@ -30,6 +50,16 @@ const LURE_KEYWORDS = [
   "auth",
   "gift",
   "support",
+  "password",
+  "confirm",
+  "suspend",
+  "expire",
+  "urgent",
+  "invoice",
+  "payment",
+  "signin",
+  "credential",
+  "unlock",
 ];
 
 export async function runPermissionAudit(engine) {
@@ -227,6 +257,29 @@ export function analyzeUrlHeuristics(engine, rawInput) {
     return;
   }
 
+  const lowerInput = trimmed.toLowerCase();
+  if (lowerInput.startsWith("javascript:")) {
+    engine.addFinding({
+      source: "url-triage",
+      title: "JavaScript URI detected",
+      detail: "JavaScript URIs can execute arbitrary code and are a common XSS vector.",
+      severity: "critical",
+      confidence: 0.95,
+    });
+    return;
+  }
+
+  if (lowerInput.startsWith("data:")) {
+    engine.addFinding({
+      source: "url-triage",
+      title: "Data URI detected",
+      detail: "Data URIs can embed executable content and bypass content filters.",
+      severity: "high",
+      confidence: 0.88,
+    });
+    return;
+  }
+
   let parsed;
   try {
     parsed = new URL(trimmed);
@@ -234,7 +287,7 @@ export function analyzeUrlHeuristics(engine, rawInput) {
     engine.addFinding({
       source: "url-triage",
       title: "Invalid URL format",
-      detail: `Could not parse input: ${trimmed}`,
+      detail: `Could not parse input: ${trimmed.slice(0, 200)}`,
       severity: "medium",
       confidence: 0.95,
     });
@@ -315,6 +368,26 @@ export function analyzeUrlHeuristics(engine, rawInput) {
     });
   }
 
+  if (parsed.username || parsed.password) {
+    engine.addFinding({
+      source: "url-triage",
+      title: "URL contains embedded credentials",
+      detail: "URLs with user:pass@ format can mask the real destination and trick users.",
+      severity: "high",
+      confidence: 0.9,
+    });
+  }
+
+  if (/@/.test(parsed.hostname)) {
+    engine.addFinding({
+      source: "url-triage",
+      title: "@ symbol in hostname",
+      detail: "The @ in the hostname may redirect users to an unexpected destination.",
+      severity: "high",
+      confidence: 0.85,
+    });
+  }
+
   const lower = parsed.href.toLowerCase();
   const keywordHits = LURE_KEYWORDS.filter((word) => lower.includes(word));
   if (keywordHits.length >= 2) {
@@ -331,6 +404,8 @@ export function analyzeUrlHeuristics(engine, rawInput) {
     input: trimmed,
     analyzedAt: new Date().toISOString(),
     keywordHits,
+    hostname,
+    tld,
   });
 }
 
@@ -382,9 +457,13 @@ async function discoverLocalIps(timeoutMs = 1300) {
 }
 
 function isPrivateIp(ip) {
+  if (ip === "::1" || ip.startsWith("fd") || ip.startsWith("fe80:")) {
+    return true;
+  }
   return (
     ip.startsWith("10.") ||
     ip.startsWith("192.168.") ||
+    ip.startsWith("127.") ||
     /^172\.(1[6-9]|2\d|3[0-1])\./.test(ip)
   );
 }

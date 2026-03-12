@@ -454,14 +454,30 @@ async function runFullScan() {
   logActivity("Scan initiated.");
 
   try {
-    await runPermissionAudit(engine);
-    await runDeviceSurfaceAudit(engine);
-    await runNetworkSignalAudit(engine);
-    await runBluetoothAudit(engine);
+    const scanResults = await Promise.allSettled([
+      runPermissionAudit(engine),
+      runDeviceSurfaceAudit(engine),
+      runNetworkSignalAudit(engine),
+      runBluetoothAudit(engine),
+    ]);
+
+    const failures = scanResults.filter((r) => r.status === "rejected");
+    if (failures.length > 0) {
+      for (const failure of failures) {
+        engine.addFinding({
+          source: "scan-orchestrator",
+          title: "Analyzer module failed",
+          detail: String(failure.reason?.message || failure.reason),
+          severity: "low",
+          confidence: 0.7,
+        });
+      }
+    }
+
     engine.finish();
     refreshUi();
     flashPanel("findingsDeck");
-    logActivity("Full threat scan completed.");
+    logActivity(`Full threat scan completed. ${failures.length > 0 ? `${failures.length} module(s) had errors.` : ""}`);
   } catch (error) {
     logActivity(`Scan failed: ${error.message}`, "error");
   } finally {
@@ -647,7 +663,12 @@ async function requestBluetoothPermission() {
 }
 
 function performUrlAnalysis() {
-  analyzeUrlHeuristics(engine, elements.urlInput.value);
+  const rawUrl = elements.urlInput.value.trim();
+  if (!rawUrl) {
+    logActivity("No URL entered for triage.", "warning");
+    return;
+  }
+  analyzeUrlHeuristics(engine, rawUrl);
   refreshUi();
   flashPanel("findingsDeck");
   logActivity("URL threat triage completed.");
@@ -740,6 +761,12 @@ async function generateAiPlaybook() {
       }),
     });
     const data = await response.json();
+    if (response.status === 429) {
+      elements.aiOutput.textContent = data?.detail || "Rate limit exceeded. Wait a moment and try again.";
+      logActivity("Gemini rate limit reached.", "warning");
+      flashPanel("playbookDeck");
+      return;
+    }
     if (!response.ok || !data.ok) {
       elements.aiOutput.textContent = data?.text || data?.message || "Gemini request failed.";
       logActivity("Gemini playbook generation failed.", "warning");

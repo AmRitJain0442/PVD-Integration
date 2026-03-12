@@ -1,15 +1,22 @@
 const fs = require("fs");
 const http = require("http");
 const path = require("path");
+const crypto = require("crypto");
 const { URL } = require("url");
 
 const ROOT_DIR = __dirname;
 const PUBLIC_DIR = path.join(ROOT_DIR, "public");
-const PORT = Number(process.env.PORT || 3000);
-const BODY_LIMIT = 2 * 1024 * 1024;
-const eventStore = [];
 
 loadEnvFile(path.join(ROOT_DIR, ".env"));
+
+const PORT = Number(process.env.PORT || 3000);
+const BODY_LIMIT = 2 * 1024 * 1024;
+const GEMINI_TIMEOUT_MS = 15000;
+const GEMINI_RATE_LIMIT = Number(process.env.GEMINI_RATE_LIMIT || 10);
+const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || "").split(",").map((s) => s.trim()).filter(Boolean);
+
+const eventStore = [];
+const geminiRequestLog = [];
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -24,8 +31,22 @@ const MIME_TYPES = {
   ".webp": "image/webp",
 };
 
+const SECURITY_HEADERS = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "X-XSS-Protection": "1; mode=block",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+};
+
 const server = http.createServer(async (req, res) => {
   try {
+    for (const [header, value] of Object.entries(SECURITY_HEADERS)) {
+      res.setHeader(header, value);
+    }
+
+    setCorsHeaders(req, res);
+
     const baseUrl = `http://${req.headers.host || "localhost"}`;
     const requestUrl = new URL(req.url || "/", baseUrl);
     const pathname = requestUrl.pathname;
@@ -39,7 +60,7 @@ const server = http.createServer(async (req, res) => {
   } catch (error) {
     sendJson(res, 500, {
       error: "Unhandled server error",
-      detail: error instanceof Error ? error.message : "Unknown error",
+      detail: process.env.NODE_ENV === "production" ? "Internal error" : (error instanceof Error ? error.message : "Unknown error"),
     });
   }
 });
@@ -60,6 +81,7 @@ async function handleApi(req, res, pathname) {
       uptimeSec: Number(process.uptime().toFixed(2)),
       now: new Date().toISOString(),
       geminiConfigured: Boolean(process.env.GEMINI_API_KEY),
+      version: require("./package.json").version,
     });
     return;
   }
@@ -73,24 +95,56 @@ async function handleApi(req, res, pathname) {
   }
 
   if (req.method === "POST" && pathname === "/api/events/ingest") {
-    const body = await parseJsonBody(req);
+    let body;
+    try {
+      body = await parseJsonBody(req);
+    } catch (error) {
+      sendJson(res, 400, { error: error.message });
+      return;
+    }
+
+    if (!body || typeof body !== "object") {
+      sendJson(res, 400, { error: "Request body must be a JSON object" });
+      return;
+    }
+
     const entry = {
-      id: String(Date.now()),
-      source: body?.source || "nightwatch-ui",
+      id: `${Date.now()}-${crypto.randomBytes(4).toString("hex")}`,
+      source: sanitizeString(body?.source || "nightwatch-ui", 100),
       receivedAt: new Date().toISOString(),
       payload: body,
     };
     eventStore.push(entry);
+
+    if (eventStore.length > 500) {
+      eventStore.splice(0, eventStore.length - 500);
+    }
+
     sendJson(res, 200, { status: "stored", id: entry.id, total: eventStore.length });
     return;
   }
 
   if (req.method === "POST" && pathname === "/api/gemini/analyze") {
-    const body = await parseJsonBody(req);
+    if (isRateLimited()) {
+      sendJson(res, 429, {
+        error: "Rate limit exceeded",
+        detail: `Maximum ${GEMINI_RATE_LIMIT} requests per minute allowed.`,
+      });
+      return;
+    }
+
+    let body;
+    try {
+      body = await parseJsonBody(req);
+    } catch (error) {
+      sendJson(res, 400, { error: error.message });
+      return;
+    }
+
     const context = body?.context || {};
-    const userGoal = body?.userGoal || "Create a security remediation plan.";
+    const userGoal = sanitizeString(body?.userGoal || "Create a security remediation plan.", 500);
     const result = await generateGeminiPlan(context, userGoal);
-    sendJson(res, 200, result);
+    sendJson(res, result.ok ? 200 : 502, result);
     return;
   }
 
@@ -148,6 +202,8 @@ async function generateGeminiPlan(context, userGoal) {
     };
   }
 
+  const contextStr = JSON.stringify(context, null, 2).slice(0, 8000);
+
   const prompt = [
     "You are a senior SOC architect and cyber incident commander.",
     "Given the scan context, output a practical action plan with the following sections:",
@@ -160,46 +216,69 @@ async function generateGeminiPlan(context, userGoal) {
     `Goal: ${userGoal}`,
     "",
     "Scan context JSON:",
-    JSON.stringify(context, null, 2),
+    contextStr,
   ].join("\n");
 
   const endpoint =
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
-  const response = await fetch(`${endpoint}?key=${encodeURIComponent(key)}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.25,
-        topP: 0.9,
-        maxOutputTokens: 1300,
-      },
-    }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
 
-  if (!response.ok) {
-    const errorText = await response.text();
+  try {
+    const response = await fetch(`${endpoint}?key=${encodeURIComponent(key)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.25,
+          topP: 0.9,
+          maxOutputTokens: 1300,
+        },
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return {
+        ok: false,
+        message: "Gemini API request failed",
+        status: response.status,
+        text: errorText.slice(0, 500),
+      };
+    }
+
+    const data = await response.json();
+    const text =
+      data?.candidates?.[0]?.content?.parts?.map((part) => part?.text || "").join("\n").trim() ||
+      "No response text returned by Gemini.";
+
+    geminiRequestLog.push(Date.now());
+
+    return {
+      ok: true,
+      model: "gemini-2.0-flash",
+      createdAt: new Date().toISOString(),
+      text,
+    };
+  } catch (error) {
+    if (error.name === "AbortError") {
+      return {
+        ok: false,
+        message: "Gemini request timed out",
+        text: `Request exceeded ${GEMINI_TIMEOUT_MS / 1000}s timeout. Try again or reduce context size.`,
+      };
+    }
     return {
       ok: false,
-      message: "Gemini API request failed",
-      status: response.status,
-      text: errorText.slice(0, 500),
+      message: "Gemini request failed",
+      text: error instanceof Error ? error.message : "Unknown network error",
     };
+  } finally {
+    clearTimeout(timeout);
   }
-
-  const data = await response.json();
-  const text =
-    data?.candidates?.[0]?.content?.parts?.map((part) => part?.text || "").join("\n").trim() ||
-    "No response text returned by Gemini.";
-
-  return {
-    ok: true,
-    model: "gemini-2.0-flash",
-    createdAt: new Date().toISOString(),
-    text,
-  };
 }
 
 function loadEnvFile(filePath) {
@@ -272,5 +351,28 @@ function sendEmpty(res, statusCode) {
     "Cache-Control": "no-store",
   });
   res.end();
+}
+
+function setCorsHeaders(req, res) {
+  const origin = req.headers.origin || "";
+  if (ALLOWED_ORIGINS.length === 0 || ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin || "*");
+  }
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Max-Age", "600");
+}
+
+function isRateLimited() {
+  const now = Date.now();
+  const windowStart = now - 60000;
+  while (geminiRequestLog.length > 0 && geminiRequestLog[0] < windowStart) {
+    geminiRequestLog.shift();
+  }
+  return geminiRequestLog.length >= GEMINI_RATE_LIMIT;
+}
+
+function sanitizeString(value, maxLength) {
+  return String(value || "").slice(0, maxLength).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, "");
 }
 

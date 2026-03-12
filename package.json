@@ -1,15 +1,24 @@
 {
   "name": "nightwatch-sentinel",
   "version": "1.0.0",
-  "description": "Hackathon-ready cybersecurity web app with Gemini-powered remediation copilot.",
+  "description": "Browser-native cybersecurity platform with unified threat detection, risk scoring, and Gemini-powered incident response playbooks.",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node --watch server.js"
   },
   "engines": {
-    "node": ">=18.0.0"
-  }
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "cybersecurity",
+    "threat-detection",
+    "risk-scoring",
+    "incident-response",
+    "gemini",
+    "soc"
+  ],
+  "license": "MIT"
 }
 
