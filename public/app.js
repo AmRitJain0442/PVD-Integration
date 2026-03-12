@@ -216,6 +216,8 @@ const state = {
   },
   events: [],
   selectedEventId: null,
+  sessions: [],
+  selectedSessionId: null,
   intervalsStarted: false,
 };
 
@@ -230,18 +232,22 @@ const elements = {
   contextOutput: document.getElementById("contextOutput"),
   aiOutput: document.getElementById("aiOutput"),
   eventDetailOutput: document.getElementById("eventDetailOutput"),
+  sessionDetailOutput: document.getElementById("sessionDetailOutput"),
   activityLog: document.getElementById("activityLog"),
   eventsList: document.getElementById("eventsList"),
+  sessionsList: document.getElementById("sessionsList"),
   runScanBtn: document.getElementById("runScanBtn"),
   heroScanBtn: document.getElementById("heroScanBtn"),
   permissionsBtn: document.getElementById("permissionsBtn"),
   analyzeUrlBtn: document.getElementById("analyzeUrlBtn"),
   exportBtn: document.getElementById("exportBtn"),
   pushBtn: document.getElementById("pushBtn"),
+  saveSessionBtn: document.getElementById("saveSessionBtn"),
   generatePlanBtn: document.getElementById("generatePlanBtn"),
   copyAiBtn: document.getElementById("copyAiBtn"),
   copyContextBtn: document.getElementById("copyContextBtn"),
   refreshEventsBtn: document.getElementById("refreshEventsBtn"),
+  refreshSessionsBtn: document.getElementById("refreshSessionsBtn"),
   refreshHealthBtn: document.getElementById("refreshHealthBtn"),
   loadDefaultGoalBtn: document.getElementById("loadDefaultGoalBtn"),
   urlInput: document.getElementById("urlInput"),
@@ -275,6 +281,7 @@ function init() {
   refreshUi();
   renderHealth();
   renderEvents();
+  renderSessions();
   logActivity("NightWatch Sentinel loaded. Ready for scan.");
   void syncBackgroundState({ logHealth: true });
   startBackgroundPolling();
@@ -287,6 +294,7 @@ function bindCoreEvents() {
   elements.analyzeUrlBtn?.addEventListener("click", performUrlAnalysis);
   elements.exportBtn?.addEventListener("click", exportReport);
   elements.pushBtn?.addEventListener("click", pushEventPayload);
+  elements.saveSessionBtn?.addEventListener("click", saveSessionSnapshot);
   elements.generatePlanBtn?.addEventListener("click", generateAiPlaybook);
   elements.copyAiBtn?.addEventListener("click", () =>
     copyTextToClipboard(elements.aiOutput.textContent, "AI output copied to clipboard.")
@@ -295,6 +303,7 @@ function bindCoreEvents() {
     copyTextToClipboard(elements.contextOutput.textContent, "Context JSON copied to clipboard.")
   );
   elements.refreshEventsBtn?.addEventListener("click", () => void refreshEvents(true));
+  elements.refreshSessionsBtn?.addEventListener("click", () => void refreshSessions(true));
   elements.refreshHealthBtn?.addEventListener("click", () => void fetchHealth(true));
   elements.loadDefaultGoalBtn?.addEventListener("click", () => {
     elements.goalInput.value = DEFAULT_GOAL;
@@ -743,6 +752,121 @@ async function pushEventPayload() {
   }
 }
 
+async function saveSessionSnapshot() {
+  if (isBusy) {
+    return;
+  }
+
+  setBusyState("Saving session");
+  try {
+    const summary = engine.getSummary();
+    const context = engine.getContext();
+    const payload = {
+      title: buildSessionTitle(summary),
+      summary,
+      context,
+    };
+
+    const response = await fetch("/api/sessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data?.error || "Session save failed.");
+    }
+
+    await refreshSessions(false);
+    flashPanel("sessionsDeck");
+    logActivity(`Session saved (id: ${data.id}).`);
+  } catch (error) {
+    logActivity(`Session save failed: ${error.message}`, "error");
+  } finally {
+    clearBusyState();
+  }
+}
+
+async function refreshSessions(logResult = false) {
+  try {
+    const response = await fetch("/api/sessions?limit=40");
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data?.error || "Failed to fetch sessions.");
+    }
+
+    state.sessions = Array.isArray(data?.items) ? data.items.slice() : [];
+    if (!state.selectedSessionId || !state.sessions.some((session) => session.id === state.selectedSessionId)) {
+      state.selectedSessionId = state.sessions[0]?.id || null;
+    }
+    renderSessions();
+
+    if (logResult) {
+      logActivity(`Sessions refreshed (${state.sessions.length} stored snapshot${state.sessions.length === 1 ? "" : "s"}).`);
+    }
+  } catch (error) {
+    if (logResult) {
+      logActivity(`Session refresh failed: ${error.message}`, "error");
+    }
+    state.sessions = [];
+    state.selectedSessionId = null;
+    renderSessions();
+  }
+}
+
+function renderSessions() {
+  if (!elements.sessionsList || !elements.sessionDetailOutput) {
+    return;
+  }
+
+  if (!state.sessions.length) {
+    elements.sessionsList.innerHTML =
+      "<li class='event-item'><strong>No saved sessions</strong><p>Save a snapshot to build history.</p></li>";
+    elements.sessionDetailOutput.textContent = "No session selected.";
+    return;
+  }
+
+  const activeSession = state.sessions.find((session) => session.id === state.selectedSessionId) || state.sessions[0];
+  state.selectedSessionId = activeSession?.id || null;
+
+  const itemsHtml = state.sessions
+    .map((session) => {
+      const isActive = session.id === state.selectedSessionId;
+      const safeTitle = escapeHtml(session.title || "Untitled session");
+      const createdAt = escapeHtml(session.createdAt || "");
+      const score = escapeHtml(String(session.summary?.score ?? "--"));
+      const findings = escapeHtml(String(session.summary?.totalFindings ?? "--"));
+      return `
+        <li>
+          <button type="button" class="event-item ${isActive ? "is-active" : ""}" data-session-id="${escapeHtml(session.id)}">
+            <strong>${safeTitle}</strong>
+            <p>${createdAt}</p>
+            <p><small>score: ${score} · findings: ${findings}</small></p>
+          </button>
+        </li>
+      `;
+    })
+    .join("");
+
+  elements.sessionsList.innerHTML = itemsHtml;
+
+  for (const button of elements.sessionsList.querySelectorAll("[data-session-id]")) {
+    button.addEventListener("click", () => {
+      state.selectedSessionId = button.dataset.sessionId;
+      renderSessions();
+    });
+  }
+
+  elements.sessionDetailOutput.textContent = JSON.stringify(activeSession, null, 2);
+}
+
+function buildSessionTitle(summary) {
+  const timestamp = formatTimestamp(new Date());
+  const score = summary?.score ?? 0;
+  const findings = summary?.totalFindings ?? 0;
+  return `Scan ${timestamp} · score ${score} · ${findings} findings`;
+}
+
 async function generateAiPlaybook() {
   if (isBusy) {
     return;
@@ -787,7 +911,7 @@ async function generateAiPlaybook() {
 }
 
 async function syncBackgroundState(options = {}) {
-  await Promise.all([fetchHealth(Boolean(options.logHealth)), refreshEvents(false)]);
+  await Promise.all([fetchHealth(Boolean(options.logHealth)), refreshEvents(false), refreshSessions(false)]);
 }
 
 async function fetchHealth(logResult = false) {
@@ -1004,6 +1128,7 @@ function getBusyLockedButtons() {
     elements.analyzeUrlBtn,
     elements.exportBtn,
     elements.pushBtn,
+    elements.saveSessionBtn,
     elements.generatePlanBtn,
   ].filter(Boolean);
 }
@@ -1118,6 +1243,7 @@ function startBackgroundPolling() {
   window.setInterval(() => {
     void fetchHealth(false);
     void refreshEvents(false);
+    void refreshSessions(false);
   }, POLL_INTERVAL_MS);
 }
 

@@ -33,6 +33,7 @@
           <a class="nav-link" href="#telemetry" data-scroll-target="telemetry">Telemetry</a>
           <a class="nav-link" href="#scenarioLab" data-scroll-target="scenarioLab">Scenarios</a>
           <a class="nav-link" href="#relayDeck" data-scroll-target="relayDeck">Relay</a>
+          <a class="nav-link" href="#sessionsDeck" data-scroll-target="sessionsDeck">Sessions</a>
         </nav>
 
         <div class="nav-utilities">
@@ -296,6 +297,7 @@
               <button type="button" id="permissionsBtn" class="btn">Request Device Permissions</button>
               <button type="button" id="exportBtn" class="btn">Export JSON Report</button>
               <button type="button" id="pushBtn" class="btn">Push Event To API</button>
+              <button type="button" id="saveSessionBtn" class="btn">Save Session Snapshot</button>
             </div>
 
             <div class="divider"></div>
@@ -446,6 +448,31 @@
             </div>
           </article>
         </div>
+      </section>
+
+      <section id="sessionsDeck" class="section-block">
+        <div class="section-heading" data-reveal>
+          <div>
+            <p class="kicker">Sessions</p>
+            <h2>Saved scan history</h2>
+          </div>
+          <p class="section-copy">Persist scan snapshots with risk scores for quick recall and replay.</p>
+        </div>
+
+        <article class="panel" data-reveal>
+          <div class="panel-header">
+            <div>
+              <p class="panel-kicker">Session Store</p>
+              <h3>Recent snapshots</h3>
+            </div>
+            <button type="button" id="refreshSessionsBtn" class="mini-btn">Refresh</button>
+          </div>
+
+          <div class="relay-content">
+            <ul id="sessionsList" class="events-list"></ul>
+            <pre id="sessionDetailOutput" class="output-box event-output">No session selected.</pre>
+          </div>
+        </article>
       </section>
 
       <section id="activityDeck" class="section-block">

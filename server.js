@@ -6,6 +6,9 @@ const { URL } = require("url");
 
 const ROOT_DIR = __dirname;
 const PUBLIC_DIR = path.join(ROOT_DIR, "public");
+const DATA_DIR = path.join(ROOT_DIR, "data");
+const EVENTS_FILE = path.join(DATA_DIR, "events.json");
+const SESSIONS_FILE = path.join(DATA_DIR, "sessions.json");
 
 loadEnvFile(path.join(ROOT_DIR, ".env"));
 
@@ -15,8 +18,10 @@ const GEMINI_TIMEOUT_MS = 15000;
 const GEMINI_RATE_LIMIT = Number(process.env.GEMINI_RATE_LIMIT || 10);
 const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || "").split(",").map((s) => s.trim()).filter(Boolean);
 
-const eventStore = [];
+let eventStore = [];
+let sessionStore = [];
 const geminiRequestLog = [];
+let persistTimer = null;
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -52,7 +57,7 @@ const server = http.createServer(async (req, res) => {
     const pathname = requestUrl.pathname;
 
     if (pathname.startsWith("/api/")) {
-      await handleApi(req, res, pathname);
+      await handleApi(req, res, requestUrl);
       return;
     }
 
@@ -65,11 +70,19 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => {
-  console.log(`NightWatch Sentinel running on http://localhost:${PORT}`);
-});
+initDataStores()
+  .catch((error) => {
+    console.error("Failed to initialize data stores", error);
+  })
+  .finally(() => {
+    server.listen(PORT, () => {
+      console.log(`NightWatch Sentinel running on http://localhost:${PORT}`);
+    });
+  });
 
-async function handleApi(req, res, pathname) {
+async function handleApi(req, res, requestUrl) {
+  const pathname = requestUrl.pathname;
+  const searchParams = requestUrl.searchParams;
   if (req.method === "OPTIONS") {
     sendEmpty(res, 204);
     return;
@@ -81,6 +94,8 @@ async function handleApi(req, res, pathname) {
       uptimeSec: Number(process.uptime().toFixed(2)),
       now: new Date().toISOString(),
       geminiConfigured: Boolean(process.env.GEMINI_API_KEY),
+      eventCount: eventStore.length,
+      sessionCount: sessionStore.length,
       version: require("./package.json").version,
     });
     return;
@@ -120,8 +135,98 @@ async function handleApi(req, res, pathname) {
       eventStore.splice(0, eventStore.length - 500);
     }
 
+    schedulePersist();
+
     sendJson(res, 200, { status: "stored", id: entry.id, total: eventStore.length });
     return;
+  }
+
+  if (pathname.startsWith("/api/sessions")) {
+    const segments = pathname.split("/").filter(Boolean);
+    const sessionId = segments[2];
+
+    if (req.method === "GET" && segments.length === 2) {
+      const limit = clampNumber(Number(searchParams.get("limit") || 50), 1, 200);
+      const items = sessionStore.slice(-limit).reverse();
+      sendJson(res, 200, { count: sessionStore.length, items });
+      return;
+    }
+
+    if (req.method === "GET" && segments.length === 3) {
+      const session = sessionStore.find((item) => item.id === sessionId);
+      if (!session) {
+        sendJson(res, 404, { error: "Session not found" });
+        return;
+      }
+      sendJson(res, 200, session);
+      return;
+    }
+
+    if (req.method === "POST" && segments.length === 2) {
+      let body;
+      try {
+        body = await parseJsonBody(req);
+      } catch (error) {
+        sendJson(res, 400, { error: error.message });
+        return;
+      }
+
+      if (!body || typeof body !== "object") {
+        sendJson(res, 400, { error: "Request body must be a JSON object" });
+        return;
+      }
+
+      const context = body.context;
+      const summary = normalizeSummary(body.summary || {});
+      if (!context || typeof context !== "object") {
+        sendJson(res, 400, { error: "Missing session context" });
+        return;
+      }
+
+      const serializedContext = JSON.stringify(context);
+      if (serializedContext.length > 200000) {
+        sendJson(res, 413, { error: "Session context too large" });
+        return;
+      }
+
+      const fingerprint = crypto.createHash("sha256").update(serializedContext).digest("hex").slice(0, 12);
+      const recentDuplicate = sessionStore.find((item) =>
+        item.fingerprint === fingerprint &&
+        Date.parse(item.createdAt) > Date.now() - 5 * 60 * 1000
+      );
+
+      if (recentDuplicate) {
+        sendJson(res, 200, {
+          status: "duplicate",
+          id: recentDuplicate.id,
+          total: sessionStore.length,
+        });
+        return;
+      }
+
+      const entry = {
+        id: `${Date.now()}-${crypto.randomBytes(4).toString("hex")}`,
+        title: sanitizeString(body.title || `Session ${new Date().toISOString()}`, 120),
+        createdAt: new Date().toISOString(),
+        summary,
+        context,
+        notes: sanitizeString(body.notes || "", 600),
+        tags: Array.isArray(body.tags)
+          ? body.tags.map((tag) => sanitizeString(tag, 40)).filter(Boolean).slice(0, 8)
+          : [],
+        fingerprint,
+      };
+
+      sessionStore.push(entry);
+      if (sessionStore.length > 200) {
+        sessionStore.splice(0, sessionStore.length - 200);
+      }
+
+      schedulePersist();
+
+      sendJson(res, 200, { status: "stored", id: entry.id, total: sessionStore.length });
+      return;
+    }
   }
 
   if (req.method === "POST" && pathname === "/api/gemini/analyze") {
@@ -281,6 +386,45 @@ async function generateGeminiPlan(context, userGoal) {
   }
 }
 
+async function initDataStores() {
+  await fs.promises.mkdir(DATA_DIR, { recursive: true });
+  eventStore = await readJsonArray(EVENTS_FILE);
+  sessionStore = await readJsonArray(SESSIONS_FILE);
+}
+
+async function readJsonArray(filePath) {
+  try {
+    const data = await fs.promises.readFile(filePath, "utf-8");
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return [];
+    }
+    console.warn(`Failed to read ${filePath}`, error);
+    return [];
+  }
+}
+
+function schedulePersist() {
+  if (persistTimer) {
+    return;
+  }
+
+  persistTimer = setTimeout(() => {
+    persistTimer = null;
+    void persistStores();
+  }, 250);
+}
+
+async function persistStores() {
+  await fs.promises.mkdir(DATA_DIR, { recursive: true });
+  await Promise.all([
+    fs.promises.writeFile(EVENTS_FILE, JSON.stringify(eventStore, null, 2), "utf-8"),
+    fs.promises.writeFile(SESSIONS_FILE, JSON.stringify(sessionStore, null, 2), "utf-8"),
+  ]);
+}
+
 function loadEnvFile(filePath) {
   if (!fs.existsSync(filePath)) {
     return;
@@ -374,5 +518,22 @@ function isRateLimited() {
 
 function sanitizeString(value, maxLength) {
   return String(value || "").slice(0, maxLength).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, "");
+}
+
+function normalizeSummary(summary) {
+  return {
+    score: clampNumber(Number(summary.score ?? 0), 0, 100),
+    totalFindings: clampNumber(Number(summary.totalFindings ?? 0), 0, 9999),
+    criticalPlusHigh: clampNumber(Number(summary.criticalPlusHigh ?? 0), 0, 9999),
+    signalCount: clampNumber(Number(summary.signalCount ?? 0), 0, 9999),
+    tier: sanitizeString(summary.tier || "", 16),
+  };
+}
+
+function clampNumber(value, min, max) {
+  if (Number.isNaN(value) || !Number.isFinite(value)) {
+    return min;
+  }
+  return Math.min(Math.max(value, min), max);
 }
 
