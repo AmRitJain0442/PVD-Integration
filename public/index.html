@@ -12,15 +12,23 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body class="landing-body">
+    <canvas id="particle-canvas" aria-hidden="true"></canvas>
+
     <div class="background-layer" aria-hidden="true">
       <div class="scanlines"></div>
       <div class="grid-overlay"></div>
     </div>
 
+    <div class="orb-container" aria-hidden="true">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+    </div>
+
     <main class="site-shell">
-      <header class="site-nav panel site-frame" data-reveal>
+      <header class="site-nav panel site-frame glass-nav" data-reveal>
         <a class="brand-lockup" href="/">
-          <span class="brand-symbol">[[]]</span>
+          <span class="brand-symbol glitch-text" data-text="[[]]">[[]]</span>
           <div>
             <p class="kicker">Threat Interface</p>
             <h1 class="brand-title">NightWatch Sentinel</h1>
@@ -31,155 +39,272 @@
           <a class="nav-link" href="/">Home</a>
           <a class="nav-link" href="/platform">Platform</a>
           <a class="nav-link" href="/console">Console</a>
-          <a class="nav-link" href="#workflow">Workflow</a>
         </nav>
 
         <div class="nav-utilities">
           <a class="btn secondary" href="/platform">Product Map</a>
-          <a class="btn primary" href="/console">Launch Console</a>
+          <a class="btn primary glow-btn" href="/console">Launch Console</a>
         </div>
       </header>
 
-      <section class="landing-hero">
-        <article class="panel hero-panel hero-copy-card" data-reveal>
-          <div class="hero-copy-top">
-            <p class="kicker">Multi-Page Cybersecurity Product</p>
-            <h2 class="landing-title">Unified browser threat telemetry with a sharp landing page and a live operator console.</h2>
-            <p class="landing-copy">
-              NightWatch Sentinel gives you a polished entry point for demos, a dedicated console for
-              scanning and response, and a product page that explains the platform story clearly.
+      <!-- HERO -->
+      <section class="hero-section">
+        <div class="hero-content">
+          <div class="hero-text" data-reveal>
+            <div class="hero-badge">
+              <span class="badge-dot"></span>
+              Browser-Native Threat Detection
+            </div>
+            <h2 class="hero-title gradient-text">Detect. Analyze.<br/>Respond. Repeat.</h2>
+            <p class="hero-subtitle">
+              NightWatch Sentinel gives security teams a unified browser surface for
+              real-time threat detection, severity-weighted risk scoring, and AI-powered
+              incident response — all running natively in the browser.
             </p>
-          </div>
-
-          <div class="hero-actions">
-            <a class="btn primary" href="/console">Enter Console</a>
-            <a class="btn secondary" href="/platform">Explore Platform</a>
-          </div>
-
-          <div class="signal-strip">
-            <span>device posture</span>
-            <span>url triage</span>
-            <span>gemini playbooks</span>
-            <span>api relay</span>
-          </div>
-        </article>
-
-        <aside class="panel hero-panel hero-visual-card" data-reveal>
-          <div class="hero-terminal">
-            <div class="terminal-head">
-              <span>status: armed</span>
-              <span>mode: analyst</span>
-            </div>
-            <div class="terminal-grid">
-              <div class="terminal-cell">
-                <span class="cell-label">01</span>
-                <strong>scan</strong>
-                <p>run modular analyzers against the browser surface</p>
-              </div>
-              <div class="terminal-cell">
-                <span class="cell-label">02</span>
-                <strong>triage</strong>
-                <p>search, filter, and inspect findings in a dedicated workspace</p>
-              </div>
-              <div class="terminal-cell">
-                <span class="cell-label">03</span>
-                <strong>respond</strong>
-                <p>generate containment and hardening playbooks with Gemini</p>
-              </div>
-              <div class="terminal-cell">
-                <span class="cell-label">04</span>
-                <strong>relay</strong>
-                <p>push events and review recent payloads from the built-in API</p>
-              </div>
+            <div class="hero-actions">
+              <a class="btn primary glow-btn btn-lg" href="/console">
+                <span class="btn-icon">&#9654;</span>
+                Launch Console
+              </a>
+              <a class="btn secondary btn-lg" href="/platform">Explore Platform</a>
             </div>
           </div>
-        </aside>
-      </section>
 
-      <section class="landing-stats" data-reveal>
-        <article class="panel marketing-stat">
-          <p>Pages</p>
-          <strong>3</strong>
-          <span>home + platform + console</span>
-        </article>
-        <article class="panel marketing-stat">
-          <p>Core Modules</p>
-          <strong>5</strong>
-          <span>scan, triage, scenarios, playbooks, relay</span>
-        </article>
-        <article class="panel marketing-stat">
-          <p>API Routes</p>
-          <strong>4</strong>
-          <span>health, events, ingest, Gemini analyze</span>
-        </article>
-      </section>
-
-      <section id="workflow" class="marketing-section">
-        <div class="section-heading" data-reveal>
-          <div>
-            <p class="kicker">Workflow</p>
-            <h2>Built for product demos and real operator flow</h2>
+          <div class="hero-visual" data-reveal>
+            <div class="dashboard-preview">
+              <div class="dash-header">
+                <div class="dash-status">
+                  <span class="status-dot active"></span>
+                  <span>System Active</span>
+                </div>
+                <span class="dash-mode">mode: sentinel</span>
+              </div>
+              <div class="dash-body">
+                <div class="dash-score">
+                  <div class="score-ring">
+                    <svg viewBox="0 0 120 120">
+                      <defs>
+                        <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stop-color="#8bffb5" />
+                          <stop offset="100%" stop-color="#7de4ff" />
+                        </linearGradient>
+                      </defs>
+                      <circle class="score-bg" cx="60" cy="60" r="52" />
+                      <circle class="score-fill" cx="60" cy="60" r="52" />
+                    </svg>
+                    <div class="score-value">
+                      <span class="score-number" data-count="73">0</span>
+                      <span class="score-label">Risk</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="dash-feed">
+                  <div class="feed-line" style="--delay: 0.2s">
+                    <span class="feed-time">00:01</span>
+                    <span class="feed-sev critical">CRIT</span>
+                    <span>Permissions policy violation detected</span>
+                  </div>
+                  <div class="feed-line" style="--delay: 0.9s">
+                    <span class="feed-time">00:02</span>
+                    <span class="feed-sev high">HIGH</span>
+                    <span>Suspicious URL pattern flagged</span>
+                  </div>
+                  <div class="feed-line" style="--delay: 1.6s">
+                    <span class="feed-time">00:03</span>
+                    <span class="feed-sev medium">MED</span>
+                    <span>WebRTC leak path identified</span>
+                  </div>
+                  <div class="feed-line" style="--delay: 2.3s">
+                    <span class="feed-time">00:04</span>
+                    <span class="feed-sev low">LOW</span>
+                    <span>Device posture check complete</span>
+                  </div>
+                  <div class="feed-line" style="--delay: 3.0s">
+                    <span class="feed-time">00:05</span>
+                    <span class="feed-sev info">INFO</span>
+                    <span>AI playbook generation ready</span>
+                  </div>
+                </div>
+              </div>
+              <div class="dash-footer">
+                <div class="scan-bar">
+                  <div class="scan-progress"></div>
+                </div>
+                <span>scanning modules...</span>
+              </div>
+            </div>
           </div>
-          <p class="section-copy">Start from the story, move into the platform, then drop into the live console.</p>
-        </div>
-
-        <div class="marketing-grid">
-          <article class="panel marketing-card" data-reveal>
-            <span class="feature-glyph">01</span>
-            <h3>Landing</h3>
-            <p>Use the front page as the pitch layer with a clear value proposition and direct calls to action.</p>
-            <a class="inline-link" href="/">Stay on landing</a>
-          </article>
-          <article class="panel marketing-card" data-reveal>
-            <span class="feature-glyph">02</span>
-            <h3>Platform</h3>
-            <p>Explain analyzers, response loops, APIs, and roadmap in a cleaner product narrative.</p>
-            <a class="inline-link" href="/platform">Open platform page</a>
-          </article>
-          <article class="panel marketing-card" data-reveal>
-            <span class="feature-glyph">03</span>
-            <h3>Console</h3>
-            <p>Move into the interactive page for scanning, URL triage, scenario loading, and relay monitoring.</p>
-            <a class="inline-link" href="/console">Open console</a>
-          </article>
         </div>
       </section>
 
-      <section class="marketing-section">
-        <div class="section-heading" data-reveal>
-          <div>
-            <p class="kicker">Highlights</p>
-            <h2>Why this feels like a product now</h2>
+      <!-- SIGNAL STRIP -->
+      <div class="signal-marquee" data-reveal>
+        <div class="marquee-track">
+          <span>url triage</span>
+          <span>device posture</span>
+          <span>risk scoring</span>
+          <span>ai playbooks</span>
+          <span>api relay</span>
+          <span>webrtc detection</span>
+          <span>bluetooth scan</span>
+          <span>permission audit</span>
+          <span>url triage</span>
+          <span>device posture</span>
+          <span>risk scoring</span>
+          <span>ai playbooks</span>
+          <span>api relay</span>
+          <span>webrtc detection</span>
+          <span>bluetooth scan</span>
+          <span>permission audit</span>
+        </div>
+      </div>
+
+      <!-- METRICS -->
+      <section class="metrics-section" data-reveal>
+        <div class="metric-card glass-card">
+          <span class="metric-number" data-count="5">0</span>
+          <span class="metric-label">Analyzer Modules</span>
+          <span class="metric-detail">permissions · network · device · bluetooth · url</span>
+        </div>
+        <div class="metric-card glass-card">
+          <span class="metric-number" data-count="100">0</span>
+          <span class="metric-label">Risk Score Range</span>
+          <span class="metric-detail">weighted severity scoring 0–100</span>
+        </div>
+        <div class="metric-card glass-card">
+          <span class="metric-number" data-count="4">0</span>
+          <span class="metric-label">API Endpoints</span>
+          <span class="metric-detail">health · events · ingest · analyze</span>
+        </div>
+        <div class="metric-card glass-card">
+          <span class="metric-icon">&lt;1<small>s</small></span>
+          <span class="metric-label">Detection Speed</span>
+          <span class="metric-detail">real-time browser-native scanning</span>
+        </div>
+      </section>
+
+      <!-- HOW IT WORKS -->
+      <section class="process-section">
+        <div class="section-header" data-reveal>
+          <p class="kicker accent-glow">How It Works</p>
+          <h2 class="section-title">From signal to response in four steps</h2>
+          <p class="section-subtitle">NightWatch Sentinel captures browser signals, scores threats, generates AI playbooks, and relays events — all in one unified pipeline.</p>
+        </div>
+
+        <div class="process-grid">
+          <div class="process-step glass-card" data-reveal>
+            <div class="step-number">01</div>
+            <h3>Capture</h3>
+            <p>Run modular analyzers across permissions, device surface, network state, Bluetooth, and URL heuristics.</p>
           </div>
-          <p class="section-copy">The front door looks intentional, and the working app is no longer forced to do every job at once.</p>
+          <div class="process-step glass-card" data-reveal>
+            <div class="step-number">02</div>
+            <h3>Score</h3>
+            <p>All findings are normalized through a severity-weighted risk engine producing a 0–100 composite score.</p>
+          </div>
+          <div class="process-step glass-card" data-reveal>
+            <div class="step-number">03</div>
+            <h3>Respond</h3>
+            <p>Gemini AI transforms the threat context into actionable containment and hardening playbooks.</p>
+          </div>
+          <div class="process-step glass-card" data-reveal>
+            <div class="step-number">04</div>
+            <h3>Relay</h3>
+            <p>Push structured events into downstream systems through the built-in API buffer and event pipeline.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- CAPABILITIES -->
+      <section class="capabilities-section">
+        <div class="section-header" data-reveal>
+          <p class="kicker accent-glow">Capabilities</p>
+          <h2 class="section-title">Built for real operator workflows</h2>
         </div>
 
-        <div class="feature-band">
-          <article class="panel feature-band-card" data-reveal>
-            <h3>Clear separation of roles</h3>
-            <p>The landing page sells the idea. The console executes the workflow. The platform page explains the system.</p>
+        <div class="capabilities-grid">
+          <article class="capability-card glass-card" data-reveal>
+            <div class="cap-icon">
+              <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                <rect x="4" y="4" width="32" height="32" rx="4" stroke="currentColor" stroke-width="1.5" opacity="0.5"/>
+                <path d="M12 20l4 4 8-8" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="28" cy="12" r="3" fill="var(--danger)" opacity="0.8"/>
+              </svg>
+            </div>
+            <h3>Threat Detection Engine</h3>
+            <p>Five specialized analyzers scan browser permissions, device posture, network state, Bluetooth surfaces, and URL patterns in parallel.</p>
+            <span class="cap-tag">5 modules · parallel execution</span>
           </article>
-          <article class="panel feature-band-card" data-reveal>
-            <h3>Clean routing</h3>
-            <p>Pages are reachable at <code>/</code>, <code>/platform</code>, and <code>/console</code> with extensionless routes.</p>
+
+          <article class="capability-card glass-card" data-reveal>
+            <div class="cap-icon">
+              <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                <path d="M20 4L4 12v8c0 9.33 6.67 18 16 20 9.33-2 16-10.67 16-20v-8L20 4z" stroke="var(--accent-alt)" stroke-width="1.5" opacity="0.5"/>
+                <path d="M14 20l4 4 8-8" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <h3>AI-Powered Response</h3>
+            <p>Gemini 2.0 Flash analyzes your complete threat context and generates structured containment playbooks with immediate and short-term actions.</p>
+            <span class="cap-tag">Gemini 2.0 Flash · structured output</span>
           </article>
-          <article class="panel feature-band-card" data-reveal>
-            <h3>Consistent visual system</h3>
-            <p>The entire site shares one cyber look instead of mixing marketing and operator UI in the same surface.</p>
+
+          <article class="capability-card glass-card" data-reveal>
+            <div class="cap-icon">
+              <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                <rect x="8" y="8" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.5" opacity="0.5"/>
+                <rect x="22" y="8" width="10" height="10" rx="2" stroke="var(--accent)" stroke-width="1.5" opacity="0.5"/>
+                <rect x="8" y="22" width="10" height="10" rx="2" stroke="var(--accent-alt)" stroke-width="1.5" opacity="0.5"/>
+                <rect x="22" y="22" width="10" height="10" rx="2" stroke="var(--amber)" stroke-width="1.5" opacity="0.5"/>
+                <line x1="18" y1="13" x2="22" y2="13" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+                <line x1="13" y1="18" x2="13" y2="22" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+              </svg>
+            </div>
+            <h3>Event Relay Pipeline</h3>
+            <p>Ingest, buffer, and relay structured security events through a lightweight API. Recent payloads are stored for inspection and replay.</p>
+            <span class="cap-tag">REST API · 500-event buffer</span>
+          </article>
+
+          <article class="capability-card glass-card" data-reveal>
+            <div class="cap-icon">
+              <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                <circle cx="20" cy="20" r="15" stroke="currentColor" stroke-width="1.5" opacity="0.3"/>
+                <circle cx="20" cy="20" r="8" stroke="var(--accent)" stroke-width="1.5" opacity="0.5"/>
+                <circle cx="20" cy="20" r="2" fill="var(--accent)"/>
+                <line x1="20" y1="5" x2="20" y2="12" stroke="var(--accent-alt)" stroke-width="1" opacity="0.4"/>
+                <line x1="20" y1="28" x2="20" y2="35" stroke="var(--accent-alt)" stroke-width="1" opacity="0.4"/>
+                <line x1="5" y1="20" x2="12" y2="20" stroke="var(--accent-alt)" stroke-width="1" opacity="0.4"/>
+                <line x1="28" y1="20" x2="35" y2="20" stroke="var(--accent-alt)" stroke-width="1" opacity="0.4"/>
+              </svg>
+            </div>
+            <h3>Scenario Presets</h3>
+            <p>Load pre-crafted threat stories instantly for demos, testing, and prompt refinement — phishing kits, shadow networks, rogue devices, and more.</p>
+            <span class="cap-tag">4 scenarios · instant load</span>
           </article>
         </div>
       </section>
 
-      <section class="cta-panel panel" data-reveal>
-        <div>
-          <p class="kicker">Ready</p>
-          <h2>Go straight into the operator workspace.</h2>
-        </div>
+      <!-- CTA -->
+      <section class="final-cta glass-card" data-reveal>
+        <div class="cta-glow" aria-hidden="true"></div>
+        <p class="kicker accent-glow">Ready?</p>
+        <h2 class="section-title">Step into the operator console.</h2>
+        <p class="cta-subtitle">Start scanning, detecting threats, and generating AI response playbooks — right now.</p>
         <div class="hero-actions">
-          <a class="btn primary" href="/console">Open Live Console</a>
-          <a class="btn secondary" href="/platform">Read Platform Details</a>
+          <a class="btn primary glow-btn btn-lg" href="/console">Open Live Console</a>
+          <a class="btn secondary btn-lg" href="/platform">Read Platform Details</a>
         </div>
       </section>
+
+      <!-- FOOTER -->
+      <footer class="site-footer" data-reveal>
+        <div class="footer-content">
+          <div class="footer-brand">
+            <span class="brand-symbol">[[]]</span>
+            <span class="brand-title">NightWatch Sentinel</span>
+          </div>
+          <p class="footer-copy">Browser-native cybersecurity. Built for operators.</p>
+        </div>
+      </footer>
     </main>
 
     <script type="module" src="/site.js"></script>
